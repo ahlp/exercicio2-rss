@@ -38,12 +38,16 @@ public class MainActivity extends Activity {
     private final String RSS_FEED = "http://rss.cnn.com/rss/edition.rss";
     private SQLiteRSSHelper db;
 
+    public void callURL(String link) {
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(link));
+        startActivity(browserIntent);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         db = SQLiteRSSHelper.getInstance(this);
-
         conteudoRSS = findViewById(R.id.conteudoRSS);
 
         SimpleCursorAdapter adapter =
@@ -74,6 +78,10 @@ public class MainActivity extends Activity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 SimpleCursorAdapter adapter = (SimpleCursorAdapter) parent.getAdapter();
                 Cursor mCursor = ((Cursor) adapter.getItem(position));
+                String link = mCursor.getString(4);
+
+                callURL(link);
+                db.markAsRead(link);
             }
         });
     }

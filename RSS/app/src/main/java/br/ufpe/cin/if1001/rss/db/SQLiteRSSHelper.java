@@ -74,20 +74,47 @@ public class SQLiteRSSHelper extends SQLiteOpenHelper {
         return insertItem(item.getTitle(),item.getPubDate(),item.getDescription(),item.getLink());
     }
     public long insertItem(String title, String pubDate, String description, String link) {
-        return 0.0;
+        ContentValues values = new ContentValues();
+        values.put(ITEM_TITLE, title);
+        values.put(ITEM_DATE, pubDate);
+        values.put(ITEM_DESC, description);
+        values.put(ITEM_LINK, link);
+        values.put(ITEM_UNREAD, true);
+        return getWritableDatabase().insert(DATABASE_TABLE, null, values);
     }
     public ItemRSS getItemRSS(String link) throws SQLException {
-        return new ItemRSS("FALTA IMPLEMENTAR","FALTA IMPLEMENTAR","2018-04-09","FALTA IMPLEMENTAR");
+
+        Cursor cursor = getReadableDatabase().rawQuery("select * from " + DATABASE_TABLE + " WHERE " + ITEM_LINK + " = ?",
+                new String[] { link });
+        if(cursor.moveToNext()) {
+            return new ItemRSS(cursor.getString(1), cursor.getString(2), cursor.getString(3), cursor.getString(4));
+        } else {
+            return null;
+        }
     }
     public Cursor getItems() throws SQLException {
-        return null;
+        return getReadableDatabase().rawQuery("select * from " + DATABASE_TABLE + " WHERE " + ITEM_UNREAD, new String[]{});
     }
     public boolean markAsUnread(String link) {
-        return false;
+        SQLiteDatabase db = getWritableDatabase();
+
+        ContentValues row = new ContentValues();
+        row.put(ITEM_UNREAD, true);
+
+        int modified = db.update(DATABASE_TABLE, row, ITEM_LINK + " = ?", new String[] { link });
+
+        return modified > 0;
     }
 
     public boolean markAsRead(String link) {
-        return false;
+        SQLiteDatabase db = getWritableDatabase();
+
+        ContentValues row = new ContentValues();
+        row.put(ITEM_UNREAD, false);
+
+        int modified = db.update(DATABASE_TABLE, row, ITEM_LINK + " = ?", new String[] { link });
+
+        return modified > 0;
     }
 
 }
