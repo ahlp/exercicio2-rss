@@ -2,14 +2,22 @@ package br.ufpe.cin.if1001.rss.ui;
 
 import android.app.Activity;
 import android.app.IntentService;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.Service;
+import android.graphics.BitmapFactory;
+import android.support.v7.app.AppCompatActivity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -40,6 +48,9 @@ public class MainActivity extends Activity {
     private ListView conteudoRSS;
     private final String RSS_FEED = "http://rss.cnn.com/rss/edition.rss";
     private SQLiteRSSHelper db;
+    private BroadcastReceiver br;
+
+    private boolean isBackgroud = true;
 
     public void callURL(String link) {
         Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(link));
@@ -52,6 +63,8 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         db = SQLiteRSSHelper.getInstance(this);
         conteudoRSS = findViewById(R.id.conteudoRSS);
+
+        br = new FeedDynamicReceiver();
 
         SimpleCursorAdapter adapter =
                 new SimpleCursorAdapter(
@@ -92,19 +105,23 @@ public class MainActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        String linkfeed = preferences.getString("rssfeedlink", getResources().getString(R.string.rssfeed));
 
-        // WRONG
-//        new CarregaRSS().onStartCommand(new Intent().addCategory(linkfeed), 0);
-//        CarregaRSS.
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(CarregaRSS.BROADCAST_UPDATE_RSS_ACTION);
+        this.registerReceiver(br, filter);
+
+
         Intent carregaRSS = new Intent(getApplicationContext(), CarregaRSS.class);
-        carregaRSS.putExtra("linkfeed", linkfeed);
         startService(carregaRSS);
 
-        // register broadcast
-        // new MainActivity.ExibirFeed().execute();
-        // in broadcast "br.ufpe.cin.if1001.rss.service.broadcast.MY_NOTIFICATION"
+        this.isBackgroud = false;
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        this.unregisterReceiver(br);
+        this.isBackgroud = true;
     }
 
     @Override
@@ -127,6 +144,40 @@ public class MainActivity extends Activity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    public void newFeedNotification() {
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this);
+
+        mBuilder.setContentTitle("Novo item no feed");
+        mBuilder.setContentText("Um novo item no seu feed RSS foi adicionado!");
+        mBuilder.setSmallIcon(R.mipmap.ic_launcher);
+        mBuilder.setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
+
+        // launch notification
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(001, mBuilder.build());
+    }
+
+    public class FeedDynamicReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            new MainActivity.ExibirFeed().execute();
+        }
+    }
+
+    public class FeedStaticReceiver extends BroadcastReceiver {
+
+        public FeedStaticReceiver() { }
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // verify if passed for the stop method
+            if (isBackgroud){
+                newFeedNotification();
+            }
+        }
     }
 
 

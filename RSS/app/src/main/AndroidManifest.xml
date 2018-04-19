@@ -19,8 +19,7 @@
         </activity>
         <activity android:name=".ui.ConfigActivity" />
         <service
-            android:name=".service.CarregaRSS"
-            android:exported="false"/>
+            android:name=".service.CarregaRSS"/>
 
     </application>
 
