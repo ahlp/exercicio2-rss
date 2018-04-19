@@ -1,24 +1,17 @@
 package br.ufpe.cin.if1001.rss.ui;
 
 import android.app.Activity;
-import android.app.IntentService;
-import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.Service;
 import android.graphics.BitmapFactory;
-import android.support.v7.app.AppCompatActivity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.v7.app.NotificationCompat;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -26,22 +19,10 @@ import android.widget.AdapterView;
 import android.widget.CursorAdapter;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
-import android.widget.Toast;
-
-import org.xmlpull.v1.XmlPullParserException;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.List;
 
 import br.ufpe.cin.if1001.rss.R;
 import br.ufpe.cin.if1001.rss.db.SQLiteRSSHelper;
-import br.ufpe.cin.if1001.rss.domain.ItemRSS;
 import br.ufpe.cin.if1001.rss.service.CarregaRSS;
-import br.ufpe.cin.if1001.rss.util.ParserRSS;
 
 public class MainActivity extends Activity {
 
@@ -53,6 +34,7 @@ public class MainActivity extends Activity {
     private boolean isBackgroud = true;
 
     public void callURL(String link) {
+        // chama o action para abrir a url
         Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(link));
         startActivity(browserIntent);
     }
@@ -61,9 +43,12 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // pegar instancia da database
         db = SQLiteRSSHelper.getInstance(this);
         conteudoRSS = findViewById(R.id.conteudoRSS);
 
+        // instancia broadcast receiver dinamico
         br = new FeedDynamicReceiver();
 
         SimpleCursorAdapter adapter =
@@ -96,6 +81,7 @@ public class MainActivity extends Activity {
                 Cursor mCursor = ((Cursor) adapter.getItem(position));
                 String link = mCursor.getString(4);
 
+                // abre o link no browser e marca o item como lido nesse evento de click
                 callURL(link);
                 db.markAsRead(link);
             }
@@ -106,21 +92,26 @@ public class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
 
+        // seta o broadcast receiver dinâmico para ficar escutando
         IntentFilter filter = new IntentFilter();
         filter.addAction(CarregaRSS.BROADCAST_UPDATE_RSS_ACTION);
         this.registerReceiver(br, filter);
 
-
+        // starta o CarregaRSS Service
         Intent carregaRSS = new Intent(getApplicationContext(), CarregaRSS.class);
         startService(carregaRSS);
 
+        // Seta flag para saber se a aplicação esta em foreground ou backgroud
         this.isBackgroud = false;
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        // desregistra o broadcast receiver
         this.unregisterReceiver(br);
+
+        // indica q a aplicação esta em backgroud
         this.isBackgroud = true;
     }
 
@@ -146,6 +137,7 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
+    // lança notificação de novo item no feed RSS
     public void newFeedNotification() {
         NotificationCompat.Builder mBuilder =
                 new NotificationCompat.Builder(this);
@@ -155,8 +147,8 @@ public class MainActivity extends Activity {
         mBuilder.setSmallIcon(R.mipmap.ic_launcher);
         mBuilder.setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
 
-        // launch notification
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        // notifica
         mNotificationManager.notify(001, mBuilder.build());
     }
 
@@ -164,6 +156,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void onReceive(Context context, Intent intent) {
+            // lança a task de exibir o feed apartir da Database
             new MainActivity.ExibirFeed().execute();
         }
     }
@@ -173,13 +166,12 @@ public class MainActivity extends Activity {
         public FeedStaticReceiver() { }
         @Override
         public void onReceive(Context context, Intent intent) {
-            // verify if passed for the stop method
+            // verifica a flag pra ver se esta em backgroud ou foregroud
             if (isBackgroud){
                 newFeedNotification();
             }
         }
     }
-
 
     class ExibirFeed extends AsyncTask<Void, Void, Cursor> {
 
