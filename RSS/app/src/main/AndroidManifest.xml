@@ -21,6 +21,13 @@
         <service
             android:name=".service.CarregaRSS"/>
 
+        <provider
+            android:authorities="br.ufpe.cin.if1001.rss.leitura"
+            android:name=".db.RssProvider"
+            android:exported="true">
+
+        </provider>
+
     </application>
 
 </manifest>

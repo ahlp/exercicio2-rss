@@ -68,11 +68,16 @@ public class SQLiteRSSHelper extends SQLiteOpenHelper {
         throw new RuntimeException("nao se aplica");
     }
 
-	//IMPLEMENTAR ABAIXO
     //Implemente a manipulação de dados nos métodos auxiliares para não ficar criando consultas manualmente
     public long insertItem(ItemRSS item) {
         return insertItem(item.getTitle(),item.getPubDate(),item.getDescription(),item.getLink());
     }
+
+    // Insert with ContentValues
+    public long insertItem(ContentValues values) {
+        return getWritableDatabase().insert(DATABASE_TABLE, null, values);
+    }
+
     public long insertItem(String title, String pubDate, String description, String link) {
         ContentValues values = new ContentValues();
         values.put(ITEM_TITLE, title);
@@ -80,7 +85,7 @@ public class SQLiteRSSHelper extends SQLiteOpenHelper {
         values.put(ITEM_DESC, description);
         values.put(ITEM_LINK, link);
         values.put(ITEM_UNREAD, true);
-        return getWritableDatabase().insert(DATABASE_TABLE, null, values);
+        return insertItem(values);
     }
     public ItemRSS getItemRSS(String link) throws SQLException {
 
@@ -92,9 +97,29 @@ public class SQLiteRSSHelper extends SQLiteOpenHelper {
             return null;
         }
     }
+
+    // update data with param condition and values
+    public long updateData(ContentValues values, String where, String[] whereArgs) {
+        return getWritableDatabase().update(DATABASE_TABLE, values, where , whereArgs);
+    }
+
+    // logical delete, dont remove from DB
+    public long deleteData(String where, String[] whereArgs) {
+        ContentValues values = new ContentValues();
+        values.put(ITEM_UNREAD, false);
+        return getWritableDatabase().update(DATABASE_TABLE, values, where, whereArgs);
+    }
+
+    public Cursor getSelect(String[] projection, String selection,
+                     String[] selectionArgs, String sortOrder) {
+        return getReadableDatabase().query(DATABASE_TABLE, projection, selection, selectionArgs,
+                null, null, sortOrder);
+    }
+
     public Cursor getItems() throws SQLException {
         return getReadableDatabase().rawQuery("select * from " + DATABASE_TABLE + " WHERE " + ITEM_UNREAD, new String[]{});
     }
+
     public boolean markAsUnread(String link) {
         SQLiteDatabase db = getWritableDatabase();
 
